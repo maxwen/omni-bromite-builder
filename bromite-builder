@@ -10,12 +10,10 @@ ARCH=${ARCH_TYPES[0]}
 BROMITE_GIT_URL_UPSTREAM="https://github.com/bromite/bromite.git"
 BROMITE_GIT_URL=${BROMITE_GIT_URL_UPSTREAM:-}
 BROMITE_GIT_TAGS=
-DARK_NAVBAR=
 GN_ARGS=
-OUTPUT_DIR="$(pwd)/out"
+OUTPUT_DIR=
 PATCHES_DIR=
 NAME=
-NO_BROMITE_PACKAGE_NAME=
 NO_BROMITE_PATCHES=
 NO_SKIP_PATCHES=
 REVISION=
@@ -33,14 +31,12 @@ opts=(
         | sed -E "s/\s/, /g"). Defaults to $ARCH"
     "-b, --bromite-git-url=<url> | Where <url> is a Bromite Git repository. Defaults to $BROMITE_GIT_URL_UPSTREAM"
     "-g, --gn-args=<args> | Where <args> is a string of GN build arguments"
-    "-n, --name=<package-name> | Where <package-name> is a valid Android package name"
     "-o, --output-dir=<dir> | Where <dir> is a path to save the APK. Defaults to ./out"
     "-p, --patches-dir=<dir> | Where <dir> is a path to a directory containing custom patches"
     "-t, --target=<target> | Where Ninja <target> is: $(echo "${TARGET_TYPES[@]}" \
         | sed -E "s/\s/, /g"). Defaults to $TARGET"
     "-r, --revision=<revision> | Where <revision> is a Bromite release tag. Defaults to latest release"
     "-u, --upstream=<commit-hash:=master> | Where <commit-hash> is a long-format git commit. Defaults to master's HEAD. When set, any Chromium tag can be assigned to <revision>"
-    "--no-bromite-package-name | Use \"org.chromium.chrome\" for package name. Overridden if <package-name> is set"
     "--no-bromite-patches | Only apply patches from Bromite's chromium_patches_list.txt"
     "--no-skip-patches | Exit on failed patch attempts"
     "--dark-navbar | Prefer a dark navigation bar over a white one"
@@ -111,40 +107,40 @@ fetch-sync () {
     mkdir -p "$BUILD_DIR"
     cd "$BUILD_DIR"
 
-    bromite_dir=$([[ $UPSTREAM_SHORT_HASH ]] \
-        && echo "bromite-$UPSTREAM_SHORT_HASH" \
-        || echo "bromite-$REVISION")
+    #bromite_dir=$([[ $UPSTREAM_SHORT_HASH ]] \
+    #    && echo "bromite-$UPSTREAM_SHORT_HASH" \
+    #    || echo "bromite-$REVISION")
 
-    rm -rf "$bromite_dir"
+    #rm -rf "$bromite_dir"
 
-    echo "Fetching Bromite"
-    git clone $BROMITE_GIT_URL "$bromite_dir" -q
+    #echo "Fetching Bromite"
+    #git clone $BROMITE_GIT_URL "$bromite_dir" -q
 
-    hash=$([[ $UPSTREAM ]] \
-        && echo "$UPSTREAM" \
-        || echo "$BROMITE_GIT_TAGS" \
-            | grep "$REVISION" \
-            | awk '{print $1}')
+    #hash=$([[ $UPSTREAM ]] \
+    #    && echo "$UPSTREAM" \
+    #    || echo "$BROMITE_GIT_TAGS" \
+    #        | grep "$REVISION" \
+    #        | awk '{print $1}')
 
-    cd "$bromite_dir"
-    git reset "$hash" --hard -q
-    rm -rf .git
+    #cd "$bromite_dir"
+    #git reset "$hash" --hard -q
+    #rm -rf .git
 
     # Fetch & Sync Chromium
     echo "Fetching and Syncing Chromium"
 
-    cd "$BUILD_DIR"
+    #cd "$BUILD_DIR"
 
-    mkdir -p chromium
+    #mkdir -p chromium
     cd chromium
 
     # Partial checkouts not supported, delete and start over (crbug.com/230691)
-    [[ ! -e .gclient ]] || [[ ! -e .gclient_entries ]] || [[ ! -d .cipd ]] \
-        && rm -rf ../chromium/{*,.g*,.c*} \
-        && fetch --nohooks --no-history android
+    #[[ ! -e .gclient ]] || [[ ! -e .gclient_entries ]] || [[ ! -d .cipd ]] \
+    #    && rm -rf ../chromium/{*,.g*,.c*} \
+    #    && fetch --nohooks --no-history android
 
     # Use custom debloated gclient config
-    cp -f "$CWD/.gclientconfig" .gclient
+    #cp -f "$CWD/.gclientconfig" .gclient
 
     # Enter chromium src root
     cd src
@@ -152,15 +148,15 @@ fetch-sync () {
     # If "apt-get" command detected, use install-build-deps to bootstrap env
     # Also ensure jdk is installed, rather than depend on third_party/jdk
     # Requires root privileges and --ubuntu-install-build-deps flag
-    [[ $(command -v apt-get) ]] \
-        && [[ $UBUNTU_INSTALL_BUILD_DEPS ]] \
-        && sudo ./build/install-build-deps-android.sh \
-        && sudo apt-get -qq install default-jdk
+    #[[ $(command -v apt-get) ]] \
+    #    && [[ $UBUNTU_INSTALL_BUILD_DEPS ]] \
+    #    && sudo ./build/install-build-deps-android.sh \
+    #    && sudo apt-get -qq install default-jdk
 
     # Reset tree
-    git clean -fdxq --exclude="out/Default_${REVISION}"
+    #git clean -fdxq --exclude="out/Default_${REVISION}"
 
-    echo 'y' | gclient sync --no-history --force --reset -r "$REVISION"
+    #echo 'y' | gclient sync --no-history -r "$REVISION"
 }
 
 prepare () {
@@ -170,9 +166,6 @@ prepare () {
     local patchlist_path
     local patchlist
     local patch_status
-
-    local ungoogled_dir
-    local ungoogled_domains_fallback=
 
     bromite_dir=$([[ $UPSTREAM_SHORT_HASH ]] \
         && echo "$BUILD_DIR/bromite-$UPSTREAM_SHORT_HASH" \
@@ -187,13 +180,7 @@ prepare () {
 
     patchlist_path=$([[ $NO_BROMITE_PATCHES ]] \
         && echo "$bromite_src/chromium_patches_list.txt" \
-        || echo "$bromite_src/bromite_patches_list.txt")
-
-    # Legacy patches_list.txt path
-    [[ ! -e $patchlist_path ]] \
-        && [[ ! $NO_BROMITE_PATCHES ]] \
-        && [[ -e "$bromite_src/patches_list.txt" ]] \
-        && patchlist_path="$bromite_src/patches_list.txt"
+        || echo "$bromite_src/cromite_patches_list.txt")
 
     # Prep Patching
     rm -rf "$BUILD_DIR/patches"
@@ -201,31 +188,19 @@ prepare () {
     cp -rf "$bromite_src/patches" \
         "$BUILD_DIR/patches"
 
-    [[ $DARK_NAVBAR ]] \
-        && cp -f "$CWD/patches/Dark-Navbar.patch" \
-            "$BUILD_DIR/patches"
-
     [[ $PATCHES_DIR ]] && [[ -d $PATCHES_DIR ]] \
         && cp -rf "$PATCHES_DIR/." \
             "$BUILD_DIR/patches"
 
     cd "$BUILD_DIR/chromium/src"
 
-    # Copy Adblock Entries Header (legacy builds)
-    [[ -e "$bromite_src/filters/adblock_entries.h" ]] \
-        && cp -f "$bromite_src/filters/adblock_entries.h" \
-            net/url_request
-
     # Patch List Order
     [[ -e $patchlist_path ]] \
-        && patchlist=($(sed -e "s|^|$BUILD_DIR/patches/|g" \
+        && patchlist=($(sed -e "/^$/d" -e "s|^|$BUILD_DIR/patches/|g" \
             < "$patchlist_path")) \
         || patchlist=("$BUILD_DIR"/patches/*.patch)
 
     # Add custom patches to patchlist
-    [[ $DARK_NAVBAR ]] \
-        && patchlist+=("$BUILD_DIR/patches/Dark-Navbar.patch")
-
     if [[ $PATCHES_DIR ]] && [[ -d $PATCHES_DIR ]]; then
         for patchfile in "$PATCHES_DIR"/*.patch; do
             [[ ! -e "$bromite_src/patches/$(basename "$patchfile")" ]] \
@@ -241,32 +216,12 @@ prepare () {
 
         [[ $patch_status -gt 0 ]] \
             && [[ ! $NO_SKIP_PATCHES ]] \
-            && [[ "$patchfile" =~ domain-substitution.patch ]] \
-            && ungoogled_domains_fallback=$patch_status \
-            && continue
-
-        [[ $patch_status -gt 0 ]] \
-            && [[ ! $NO_SKIP_PATCHES ]] \
             && echo "Skipping, doesn't apply: $(basename "$patchfile")" \
             && continue
 
         echo "Applying patch: $(basename "$patchfile")"
         git apply --whitespace=nowarn "$patchfile"
     done
-
-    [[ ! $ungoogled_domains_fallback ]] \
-        && return
-
-    # Domain Substitution Fallback via Ungoogled
-    echo "Applying Ungoogled Chromium's domain substitutions"
-    ungoogled_dir="$CWD/.bin/ungoogled-chromium"
-    rm -f "$ungoogled_dir/build/domainsubcache.tar.gz"
-
-    domain_substitution --quiet apply \
-        -r "$ungoogled_dir/domain_regex.list" \
-        -f "$ungoogled_dir/domain_substitution.list" \
-        -c "$ungoogled_dir/build/domainsubcache.tar.gz" \
-        ./
 }
 
 build () {
@@ -285,11 +240,10 @@ build () {
         && fetch-sync \
         && prepare
 
-    _setpackagename
 
     # V8 Compiler Optimization Workaround | https://crbug.com/942497
-    sed -i 's|"-O0"|"-O2"|g' \
-        "$BUILD_DIR/chromium/src/build/config/compiler/BUILD.gn"
+    #sed -i 's|"-O0"|"-O2"|g' \
+    #    "$BUILD_DIR/chromium/src/build/config/compiler/BUILD.gn"
 
     bromite_dir=$([[ $UPSTREAM_SHORT_HASH ]] \
         && echo "$BUILD_DIR/bromite-$UPSTREAM_SHORT_HASH" \
@@ -303,80 +257,16 @@ build () {
     export CHROMIUM_OUTPUT_DIR="out/Default_${REVISION}"
     mkdir -p "$CHROMIUM_OUTPUT_DIR"
 
-    # v96 and below
-    [[ -e $bromite_src/GN_ARGS ]] \
-        && bromite_gn="$bromite_src/GN_ARGS"
-
-    # v97 and above
-    [[ -e $bromite_src/bromite.gn_args ]] \
-        && bromite_gn="$bromite_src/bromite.gn_args"
-
-    # Get Bromite GN Args if they exist
-    [[ $bromite_gn ]] \
-        && gn_args_bromite="$(
-            sed -E "s/^(blink_)*symbol_level\=.+//g" \
-                < "$bromite_gn" \
-            | tr "\n" " ")" \
-        || gn_args_bromite=''
-
-    # Combine Arch & Bromite GN args
-    gn_args="target_cpu=\"$ARCH\" ${gn_args_bromite}"
-
-    # Set default Bromite-Builder GN args for quicker builds
-    gn_args+=" blink_symbol_level=0"
-    gn_args+=" enable_resource_allowlist_generation=false"
-    gn_args+=" symbol_level=0"
-    gn_args+=" treat_warnings_as_errors=false"
-
-    # Cast user GN args to array
-    gn_args_user_arr=($(echo $GN_ARGS | tr " " "\n"))
-
-    # Update GN args with user-defined args taking priority
-    for arg in "${gn_args_user_arr[@]}"; do
-        local arg_key
-        arg_key=$(echo "$arg" | sed -E 's/=.+//')
-
-        [[ $arg_key == 'target_cpu' ]] \
-            && continue
-
-        [[ $(echo "$gn_args" | grep "$arg_key=") ]] \
-            && gn_args=$(echo "$gn_args" \
-                | sed -E "s/\\s$arg_key=\\S+/ $arg/g") \
-            || gn_args="${gn_args} ${arg}"
-    done
-
-    # Normalize Whitespace
-    gn_args=$(echo "$gn_args" \
-        | sed -E 's/\s+/ /g' \
-        | sed -E 's/\s+=\s+/=/g')
-
     # Build
-    gn gen "--args=$gn_args" "$CHROMIUM_OUTPUT_DIR"
-    autoninja -C "$CHROMIUM_OUTPUT_DIR" "$TARGET"
+    gn gen --args="target_os = \"android\" $(cat $bromite_src/cromite.gn_args) target_cpu = \"arm64\" " $CHROMIUM_OUTPUT_DIR
+    autoninja -C "$CHROMIUM_OUTPUT_DIR" ${TARGET_TYPES[0]}
+    autoninja -C "$CHROMIUM_OUTPUT_DIR" ${TARGET_TYPES[1]}
 
-    # Prep output dir
-    mkdir -p "$OUTPUT_DIR"
+    [[ -n "$OUTPUT_DIR" ]] \
+        && mkdir -p "$OUTPUT_DIR" \
+        && cp -f "$CHROMIUM_OUTPUT_DIR/apks/ChromePublic.apk" "$OUTPUT_DIR" \
+        && cp -f "$CHROMIUM_OUTPUT_DIR/apks/SystemWebView.apk" "$OUTPUT_DIR"
 
-    # Generated APK
-    apk_basename=$(echo "$TARGET" \
-        | sed -e 's|_apk||g' \
-        | sed -e 's/\(web\)\(view\)/\1_\2/' \
-        | sed -e 's/^./\U&/' \
-        | sed -e 's/_./\U&/g' \
-        | sed -e 's/_//g')
-
-    # Renamed APK
-    [[ $DARK_NAVBAR ]] \
-        && output_apk_basename="$apk_basename-DarkNavbar" \
-        || output_apk_basename="$apk_basename"
-
-    output_apk_basename="$output_apk_basename-$REVISION-$ARCH"
-
-    # Copy to output dir
-    cp -f "$CHROMIUM_OUTPUT_DIR/apks/$apk_basename.apk" \
-        "$OUTPUT_DIR/$output_apk_basename.apk"
-
-    echo "Successfully built to $OUTPUT_DIR/$output_apk_basename.apk"
 }
 
 _setopts () {
@@ -454,26 +344,6 @@ _setopts () {
     done
 }
 
-_setpackagename () {
-    local dev_url
-    local gn_path
-
-    [[ ! $NAME ]] \
-        && return
-
-    dev_url="https://developer.android.com/guide/topics/manifest/manifest-element#package"
-
-    [[ ! $NAME =~ ^([A-Za-z]{1}[A-Za-z\d_]*\.)+[A-Za-z][A-Za-z\d_]*$ ]] \
-        && echo "Error: Invalid package name. Read more at $dev_url" \
-        && exit 1
-
-    gn_path="$BUILD_DIR/chromium/src/chrome/android/BUILD.gn"
-
-    [[ -e $gn_path ]] \
-        && sed -E -i "s/^(\s*_default_package\s*=\s*\")[^'|\"]+(\")/\1$NAME\2/" \
-            "$gn_path"
-}
-
 _localpatches () {
     local patches_dir_msg
     local patches_dir_abspath
@@ -524,33 +394,6 @@ _localbin () {
     # Update PATH
     export PATH=$CWD/.bin:$CWD/.bin/depot_tools:$PATH
     export PYTHONPATH="$CWD/.bin/depot_tools/third_party:$PYTHONPATH"
-
-    # Ensure 64 bit protobuf-gen-javalite is available in PATH
-    # Can remove after issue is resolved https://crbug.com/988512
-    # TODO: Remove and build binaries from source
-    protobuf_repo=https://repo1.maven.org/maven2/com/google/protobuf
-    protoc_javalite_bin=protoc-gen-javalite-3.0.0-linux-x86_64.exe
-
-    [[ $(uname -m) == x86_64 ]] \
-        && [[ ! -e "$CWD/.bin/protobuf-gen-javalite" ]] \
-        && curl -s "$protobuf_repo/protoc-gen-javalite/3.0.0/$protoc_javalite_bin" \
-            -o "$CWD/.bin/protoc-gen-javalite" \
-        && chmod 755 "$CWD/.bin/protoc-gen-javalite"
-
-    # Ungoogled Chromium
-    [[ ! -d $CWD/.bin/ungoogled-chromium ]] \
-        && cd "$CWD/.bin" \
-        && echo "Fetching Ungoogled Chromium" \
-        && git clone -q https://github.com/Eloston/ungoogled-chromium.git
-
-    cd "$CWD/.bin/ungoogled-chromium"
-    git checkout master -q
-    git pull -q
-
-    mkdir -p "$CWD/.bin/ungoogled-chromium/build"
-
-    ln -sf "$CWD/.bin/ungoogled-chromium/utils/domain_substitution.py" \
-        "$CWD/.bin/domain_substitution"
 }
 
 _getcmds () {
@@ -585,11 +428,6 @@ main () {
 
     # Set Options
     _setopts "$@"
-
-    # Set custom package name
-    [[ $NO_BROMITE_PACKAGE_NAME ]] \
-        && [[ ! $NAME ]] \
-        && NAME='org.chromium.chrome'
 
     # Setup custom patches dir
     _localpatches
