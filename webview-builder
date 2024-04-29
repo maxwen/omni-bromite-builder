@@ -17,7 +17,7 @@ NAME=
 NO_BROMITE_PATCHES=
 NO_SKIP_PATCHES=
 TARGET_TYPES=(
-    'chrome_public_apk')
+    'system_webview_apk')
 TARGET=${TARGET_TYPES[0]}
 UBUNTU_INSTALL_BUILD_DEPS=
 UPSTREAM=
@@ -110,7 +110,7 @@ prepare () {
         && echo "$bromite_dir/build" \
         || echo "$bromite_dir")
 
-    patchlist_path="$bromite_src/cromite_patches_list.txt"
+    patchlist_path="$bromite_src/webview_patches_list.txt"
 
     # Prep Patching
     rm -rf "$BUILD_DIR/patches"
@@ -181,13 +181,13 @@ build () {
     mkdir -p "$CHROMIUM_OUTPUT_DIR"
 
     # Build
-    gn gen --args="target_os = \"android\" $(cat $bromite_src/cromite.gn_args) target_cpu = \"$ARCH\" " $CHROMIUM_OUTPUT_DIR
+    gn gen --args="target_os = \"android\" $(cat $bromite_src/webview.gn_args) target_cpu = \"$ARCH\" " $CHROMIUM_OUTPUT_DIR
     autoninja -C "$CHROMIUM_OUTPUT_DIR" ${TARGET_TYPES[0]}
 
     # TODO must sign SystemWebView.apk
     [[ -n "$OUTPUT_DIR" ]] \
         && mkdir -p "$OUTPUT_DIR" \
-        && cp -f "$CHROMIUM_OUTPUT_DIR/apks/ChromePublic.apk" "$OUTPUT_DIR" \
+        && cp -f "$CHROMIUM_OUTPUT_DIR/apks/SystemWebView.apk" "$OUTPUT_DIR"
 
 }
 
